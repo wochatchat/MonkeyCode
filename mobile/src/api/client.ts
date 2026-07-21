@@ -301,6 +301,11 @@ export async function createProject(req: CreateProjectReq): Promise<Project | nu
   return resp.data ?? null;
 }
 
+/** 删除项目。对齐 Web 项目列表的删除操作。 */
+export function deleteProject(id: string) {
+  return request(`/api/v1/users/projects/${id}`, { method: 'DELETE' });
+}
+
 /* ----------------------------- Git 身份 ----------------------------- */
 
 /** 当前用户的 Git 身份列表（过滤系统内部身份，与 Web data-provider 一致）。 */

@@ -1,11 +1,12 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ApiError, listProjects } from '@/api/client';
+import { ApiError, deleteProject, listProjects } from '@/api/client';
 import type { Project } from '@/api/types';
 import { Icons } from '@/components/Icons';
 import { ProjectCard } from '@/components/ProjectCard';
+import { SwipeableRow } from '@/components/SwipeableRow';
 import { BigTitle, EmptyView, GlassTop, LoadingView, PrimaryButton } from '@/components/ui';
 import { spacing, useTheme } from '@/theme';
 
@@ -62,6 +63,18 @@ export default function ProjectsScreen() {
     if (!loadingRef.current && hasMore && cursor) fetchPage(cursor, 'more');
   }, [cursor, fetchPage, hasMore]);
 
+  const removeProject = useCallback((id: string) => setProjects((prev) => prev.filter((x) => x.id !== id)), []);
+
+  const confirmDelete = useCallback((project: Project) => {
+    Alert.alert('删除项目', `删除「${project.name ?? project.full_name ?? '该项目'}」？此操作不可恢复。`, [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try { await deleteProject(project.id!); removeProject(project.id!); }
+        catch (e) { Alert.alert('删除失败', e instanceof ApiError ? e.message : '请稍后重试'); }
+      } },
+    ]);
+  }, [removeProject]);
+
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       {loading ? (
@@ -74,7 +87,9 @@ export default function ProjectsScreen() {
           keyExtractor={(p, i) => p.id ?? String(i)}
           renderItem={({ item }) => (
             <View style={{ paddingHorizontal: spacing.pad }}>
-              <ProjectCard project={item} onPress={() => router.push(`/project/${item.id}`)} />
+              <SwipeableRow actions={[{ key: 'delete', label: '删除', icon: 'trash', color: '#fff', bg: t.red, onPress: () => confirmDelete(item) }]}>
+                <ProjectCard project={item} onPress={() => router.push(`/project/${item.id}`)} />
+              </SwipeableRow>
             </View>
           )}
           ItemSeparatorComponent={() => <View style={{ height: spacing.gap }} />}
